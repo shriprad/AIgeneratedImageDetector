@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Detector Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a25;
+            --accent: #00d4ff;
+            --accent-purple: #7b2ff7;
+            --success: #00c853;
+            --warning: #ffc107;
+            --danger: #ff5252;
+            --text-primary: #ffffff;
+            --text-secondary: #888;
+            --border: #2a2a3a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--bg-secondary);
+            margin-bottom: 30px;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .upload-zone h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .upload-zone p {
+            color: var(--text-secondary);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: none;
+            gap: 30px;
+        }
+
+        .main-content.active {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+        }
+
+        @media (max-width: 900px) {
+            .main-content.active {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Preview Panel */
+        .preview-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .preview-image {
+            width: 100%;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .file-info {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.9rem;
+        }
+
+        .file-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-info-row:last-child {
+            border-bottom: none;
+        }
+
+        .file-info-label {
+            color: var(--text-secondary);
+        }
+
+        /* Analyze Button */
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            padding: 25px;
+        }
+
+        /* Verdict Box */
+        .verdict-box {
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .verdict-box.ai {
+            background: linear-gradient(135deg, rgba(255, 82, 82, 0.2), rgba(255, 82, 82, 0.05));
+            border: 2px solid var(--danger);
+        }
+
+        .verdict-box.real {
+            background: linear-gradient(135deg, rgba(0, 200, 83, 0.2), rgba(0, 200, 83, 0.05));
+            border: 2px solid var(--success);
+        }
+
+        .verdict-box.uncertain {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 193, 7, 0.05));
+            border: 2px solid var(--warning);
+        }
+
+        .verdict-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+
+        .verdict-text {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .verdict-confidence {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Analysis Layers */
+        .layer {
+            background: var(--bg-card);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .layer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .layer-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .layer-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+        }
+
+        .layer-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-badge.pass {
+            background: rgba(0, 200, 83, 0.2);
+            color: var(--success);
+        }
+
+        .status-badge.fail {
+            background: rgba(255, 82, 82, 0.2);
+            color: var(--danger);
+        }
+
+        .status-badge.warning {
+            background: rgba(255, 193, 7, 0.2);
+            color: var(--warning);
+        }
+
+        .status-badge.info {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--accent);
+        }
+
+        .layer-content {
+            display: none;
+            padding: 0 20px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .layer-content.open {
+            display: block;
+        }
+
+        .layer-content table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+        }
+
+        .layer-content th,
+        .layer-content td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .layer-content th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            width: 40%;
+        }
+
+        .layer-content td {
+            word-break: break-all;
+        }
+
+        /* Evidence List */
+        .evidence-section {
+            margin-top: 25px;
+        }
+
+        .evidence-section h3 {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .evidence-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 15px;
+            background: var(--bg-card);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .evidence-item.ai {
+            border-left: 3px solid var(--danger);
+        }
+
+        .evidence-item.real {
+            border-left: 3px solid var(--success);
+        }
+
+        .evidence-item.neutral {
+            border-left: 3px solid var(--text-secondary);
+        }
+
+        .evidence-icon {
+            font-size: 1.2rem;
+        }
+
+        .evidence-text {
+            flex: 1;
+        }
+
+        .evidence-text strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .evidence-text small {
+            color: var(--text-secondary);
+        }
+
+        /* Loader */
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 60px;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loader h3 {
+            margin-bottom: 10px;
+        }
+
+        .loader-steps {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .loader-step {
+            padding: 5px 0;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+        }
+
+        .loader-step.active {
+            opacity: 1;
+            color: var(--accent);
+        }
+
+        .loader-step.done {
+            opacity: 1;
+            color: var(--success);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .disclaimer h4 {
+            color: var(--warning);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .disclaimer ul {
+            list-style: none;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .disclaimer li {
+            padding: 3px 0;
+        }
+
+        /* Toggle Arrow */
+        .toggle-arrow {
+            transition: transform 0.3s;
+        }
+
+        .toggle-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        /* Progress Bar */
+        .confidence-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .confidence-fill.ai {
+            background: linear-gradient(90deg, var(--danger), #ff8a80);
+        }
+
+        .confidence-fill.real {
+            background: linear-gradient(90deg, var(--success), #69f0ae);
+        }
+
+        .confidence-fill.uncertain {
+            background: linear-gradient(90deg, var(--warning), #ffecb3);
+        }
+
+        /* Score Grid */
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .score-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .score-label {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🔬</div>
+            <h1>AI Image Detector Pro</h1>
+            <p class="tagline">Multi-layer forensic analysis covering all detection scenarios</p>
+        </header>
+
+        <!-- Upload Zone -->
+        <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon">📤</div>
+            <h3>Drop an image here or click to upload</h3>
+            <p>Supports JPG, PNG, WebP, HEIC • Max 20MB</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*">
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Preview Panel -->
+            <div class="preview-panel">
+                <img id="previewImage" class="preview-image" alt="Preview">
+                <div class="file-info" id="fileInfo">
+                    <div class="file-info-row">
+                        <span class="file-info-label">File Name</span>
+                        <span id="fileName">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="file-info-label">File Size</span>
+                        <span id="fileSize">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="file-info-label">Dimensions</span>
+                        <span id="fileDimensions">-</span>
+                    </div>
+                    <div class="file-info-row">
+                        <span class="file-info-label">Format</span>
+                        <span id="fileFormat">-</span>
+                    </div>
+                </div>
+                <button class="analyze-btn" id="analyzeBtn">🔬 Run Full Analysis</button>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="results-panel">
+                <!-- Loader -->
+                <div class="loader" id="loader">
+                    <div class="spinner"></div>
+                    <h3>Analyzing Image...</h3>
+                    <div class="loader-steps">
+                        <div class="loader-step" id="step1">📋 Extracting metadata...</div>
+                        <div class="loader-step" id="step2">🔍 Checking AI markers (C2PA/IPTC)...</div>
+                        <div class="loader-step" id="step3">📷 Verifying camera authenticity...</div>
+                        <div class="loader-step" id="step4">🧬 Analyzing pixel forensics...</div>
+                        <div class="loader-step" id="step5">🤖 AI vision analysis...</div>
+                        <div class="loader-step" id="step6">📊 Calculating verdict...</div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="resultsContent" style="display: none;">
+                    <!-- Verdict Box -->
+                    <div class="verdict-box" id="verdictBox">
+                        <div class="verdict-icon" id="verdictIcon">🔍</div>
+                        <div class="verdict-text" id="verdictText">Analyzing...</div>
+                        <div class="verdict-confidence" id="verdictConfidence">Please wait</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Score Grid -->
+                    <div class="score-grid">
+                        <div class="score-card">
+                            <div class="score-value" id="aiScore">-</div>
+                            <div class="score-label">AI Probability</div>
+                        </div>
+                        <div class="score-card">
+                            <div class="score-value" id="realScore">-</div>
+                            <div class="score-label">Real Probability</div>
+                        </div>
+                        <div class="score-card">
+                            <div class="score-value" id="confidenceScore">-</div>
+                            <div class="score-label">Confidence</div>
+                        </div>
+                    </div>
+
+                    <!-- Analysis Layers -->
+                    <div class="analysis-layers" id="analysisLayers">
+                        <!-- Layer 1: AI Markers -->
+                        <div class="layer" id="layer1">
+                            <div class="layer-header" onclick="toggleLayer('layer1')">
+                                <div class="layer-title">
+                                    <span>🎯</span>
+                                    <span>Layer 1: AI Markers (C2PA/IPTC)</span>
+                                </div>
+                                <div class="layer-status">
+                                    <span class="status-badge" id="layer1Status">Pending</span>
+                                    <span class="toggle-arrow">▼</span>
+                                </div>
+                            </div>
+                            <div class="layer-content" id="layer1Content"></div>
+                        </div>
+
+                        <!-- Layer 2: Camera Authenticity -->
+                        <div class="layer" id="layer2">
+                            <div class="layer-header" onclick="toggleLayer('layer2')">
+                                <div class="layer-title">
+                                    <span>📷</span>
+                                    <span>Layer 2: Camera Authenticity</span>
+                                </div>
+                                <div class="layer-status">
+                                    <span class="status-badge" id="layer2Status">Pending</span>
+                                    <span class="toggle-arrow">▼</span>
+                                </div>
+                            </div>
+                            <div class="layer-content" id="layer2Content"></div>
+                        </div>
+
+                        <!-- Layer 3: File Structure -->
+                        <div class="layer" id="layer3">
+                            <div class="layer-header" onclick="toggleLayer('layer3')">
+                                <div class="layer-title">
+                                    <span>📁</span>
+                                    <span>Layer 3: File Structure</span>
+                                </div>
+                                <div class="layer-status">
+                                    <span class="status-badge" id="layer3Status">Pending</span>
+                                    <span class="toggle-arrow">▼</span>
+                                </div>
+                            </div>
+                            <div class="layer-content" id="layer3Content"></div>
+                        </div>
+
+                        <!-- Layer 4: Pixel Forensics -->
+                        <div class="layer" id="layer4">
+                            <div class="layer-header" onclick="toggleLayer('layer4')">
+                                <div class="layer-title">
+                                    <span>🧬</span>
+                                    <span>Layer 4: Pixel Forensics</span>
+                                </div>
+                                <div class="layer-status">
+                                    <span class="status-badge" id="layer4Status">Pending</span>
+                                    <span class="toggle-arrow">▼</span>
+                                </div>
+                            </div>
+                            <div class="layer-content" id="layer4Content"></div>
+                        </div>
+
+                        <!-- Layer 5: AI Vision Analysis -->
+                        <div class="layer" id="layer5">
+                            <div class="layer-header" onclick="toggleLayer('layer5')">
+                                <div class="layer-title">
+                                    <span>🤖</span>
+                                    <span>Layer 5: AI Vision Analysis</span>
+                                </div>
+                                <div class="layer-status">
+                                    <span class="status-badge" id="layer5Status">Pending</span>
+                                    <span class="toggle-arrow">▼</span>
+                                </div>
+                            </div>
+                            <div class="layer-content" id="layer5Content"></div>
+                        </div>
+                    </div>
+
+                    <!-- Evidence Section -->
+                    <div class="evidence-section">
+                        <h3>📊 Evidence Summary</h3>
+                        <div id="evidenceList"></div>
+                    </div>
+
+                    <!-- Disclaimer -->
+                    <div class="disclaimer">
+                        <h4>⚠️ Important Limitations</h4>
+                        <ul>
+                            <li>• Metadata CAN be stripped - absence of AI markers proves nothing</li>
+                            <li>• Modern AI (GPT-4o, Gemini, DALL-E 3) can fool pixel forensics</li>
+                            <li>• This tool provides PROBABILITY, not CERTAINTY</li>
+                            <li>• For critical decisions, use multiple verification methods</li>
+                            <li>• S3/cloud storage preserves metadata, social media strips it</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built with Claude AI • <a href="https://github.com" target="_blank">View Source</a></p>
+            <p style="margin-top: 10px; font-size: 0.85rem;">
+                Detection is probabilistic, not definitive. The future is attestation, not detection.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================
+        // AI IMAGE DETECTOR PRO - CLIENT SIDE
+        // ============================================
+
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const mainContent = document.getElementById('mainContent');
+        const previewImage = document.getElementById('previewImage');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loader = document.getElementById('loader');
+        const resultsContent = document.getElementById('resultsContent');
+
+        let currentFile = null;
+        let imageData = null;
+        let extractedMetadata = {};
+
+        // Known AI software identifiers
+        const AI_SOFTWARE_MARKERS = [
+            'gpt', 'chatgpt', 'openai', 'dall-e', 'dalle',
+            'gemini', 'google ai', 'imagen',
+            'midjourney', 'mj',
+            'stable diffusion', 'stability ai', 'sdxl',
+            'firefly', 'adobe firefly',
+            'leonardo', 'leonardo.ai',
+            'bing image creator', 'copilot',
+            'flux', 'ideogram', 'playground ai'
+        ];
+
+        // Known AI dimension patterns
+        const AI_DIMENSIONS = [
+            [512, 512], [768, 768], [1024, 1024], [1024, 1536], [1536, 1024],
+            [1024, 1792], [1792, 1024], [896, 1152], [1152, 896]
+        ];
+
+        // Camera EXIF fields to check
+        const CAMERA_FIELDS = [
+            'Make', 'Model', 'LensModel', 'LensInfo', 'LensMake',
+            'FocalLength', 'FNumber', 'ExposureTime', 'ISO', 'ISOSpeedRatings',
+            'ExposureProgram', 'ExposureMode', 'MeteringMode', 'Flash',
+            'WhiteBalance', 'GPSLatitude', 'GPSLongitude', 'DateTimeOriginal'
+        ];
+
+        // ============================================
+        // FILE HANDLING
+        // ============================================
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload an image file');
+                return;
+            }
+
+            if (file.size > 20 * 1024 * 1024) {
+                alert('File too large. Max 20MB allowed.');
+                return;
+            }
+
+            currentFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imageData = e.target.result;
+                previewImage.src = imageData;
+                
+                // Get image dimensions
+                const img = new Image();
+                img.onload = () => {
+                    document.getElementById('fileDimensions').textContent = `${img.width} × ${img.height}`;
+                    extractedMetadata.width = img.width;
+                    extractedMetadata.height = img.height;
+                };
+                img.src = imageData;
+            };
+            reader.readAsDataURL(file);
+
+            // Update file info
+            document.getElementById('fileName').textContent = file.name.length > 25 
+                ? file.name.substring(0, 25) + '...' 
+                : file.name;
+            document.getElementById('fileSize').textContent = formatBytes(file.size);
+            document.getElementById('fileFormat').textContent = file.type.split('/')[1].toUpperCase();
+
+            // Extract EXIF
+            extractMetadata(file);
+
+            // Show main content
+            mainContent.classList.add('active');
+            uploadZone.style.display = 'none';
+            resultsContent.style.display = 'none';
+            loader.classList.remove('active');
+        }
+
+        function extractMetadata(file) {
+            extractedMetadata = {
+                fileName: file.name,
+                fileSize: file.size,
+                fileType: file.type,
+                lastModified: new Date(file.lastModified).toISOString(),
+                exif: {}
+            };
+
+            EXIF.getData(file, function() {
+                const allTags = EXIF.getAllTags(this);
+                extractedMetadata.allExifTags = allTags;
+                extractedMetadata.exifTagCount = Object.keys(allTags).length;
+
+                // Extract specific fields
+                CAMERA_FIELDS.forEach(field => {
+                    if (allTags[field] !== undefined) {
+                        extractedMetadata.exif[field] = allTags[field];
+                    }
+                });
+
+                // Check for software
+                if (allTags.Software) {
+                    extractedMetadata.software = allTags.Software;
+                }
+
+                console.log('Extracted metadata:', extractedMetadata);
+            });
+        }
+
+        // ============================================
+        // ANALYSIS
+        // ============================================
+
+        analyzeBtn.addEventListener('click', runAnalysis);
+
+        async function runAnalysis() {
+            if (!currentFile) return;
+
+            // Show loader
+            loader.classList.add('active');
+            resultsContent.style.display = 'none';
+            analyzeBtn.disabled = true;
+
+            // Reset steps
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`step${i}`).className = 'loader-step';
+            }
+
+            const results = {
+                layers: {},
+                evidence: [],
+                scores: { ai: 0, real: 0, total: 0 }
+            };
+
+            try {
+                // Step 1: Check AI Markers
+                await updateStep(1);
+                results.layers.aiMarkers = analyzeAIMarkers();
+                await delay(300);
+
+                // Step 2: Check Camera Authenticity
+                await updateStep(2);
+                results.layers.camera = analyzeCameraAuthenticity();
+                await delay(300);
+
+                // Step 3: File Structure
+                await updateStep(3);
+                results.layers.fileStructure = analyzeFileStructure();
+                await delay(300);
+
+                // Step 4: Pixel Forensics (client-side limited)
+                await updateStep(4);
+                results.layers.pixels = analyzePixelPatterns();
+                await delay(300);
+
+                // Step 5: AI Vision Analysis (via API)
+                await updateStep(5);
+                results.layers.aiVision = await analyzeWithAI();
+                await delay(300);
+
+                // Step 6: Calculate verdict
+                await updateStep(6);
+                calculateVerdict(results);
+                await delay(300);
+
+                // Display results
+                displayResults(results);
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Analysis failed. Please try again.');
+            }
+
+            loader.classList.remove('active');
+            analyzeBtn.disabled = false;
+        }
+
+        function updateStep(step) {
+            return new Promise(resolve => {
+                // Mark previous as done
+                for (let i = 1; i < step; i++) {
+                    document.getElementById(`step${i}`).classList.remove('active');
+                    document.getElementById(`step${i}`).classList.add('done');
+                }
+                // Mark current as active
+                document.getElementById(`step${step}`).classList.add('active');
+                setTimeout(resolve, 100);
+            });
+        }
+
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ============================================
+        // LAYER 1: AI MARKERS
+        // ============================================
+
+        function analyzeAIMarkers() {
+            const result = {
+                found: false,
+                markers: [],
+                confidence: 0
+            };
+
+            // Check software field for AI markers
+            const software = extractedMetadata.software || '';
+            const softwareLower = software.toLowerCase();
+
+            for (const marker of AI_SOFTWARE_MARKERS) {
+                if (softwareLower.includes(marker)) {
+                    result.found = true;
+                    result.markers.push({
+                        type: 'Software',
+                        value: software,
+                        match: marker
+                    });
+                    result.confidence = 99;
+                }
+            }
+
+            // Check all EXIF tags for AI-related content
+            const allTags = extractedMetadata.allExifTags || {};
+            for (const [key, value] of Object.entries(allTags)) {
+                const valueLower = String(value).toLowerCase();
+                const keyLower = key.toLowerCase();
+
+                // Check for C2PA/IPTC markers
+                if (keyLower.includes('digitalsourcetype') || keyLower.includes('c2pa') || keyLower.includes('jumbf')) {
+                    if (valueLower.includes('trainedalgorithmic') || valueLower.includes('composite')) {
+                        result.found = true;
+                        result.markers.push({
+                            type: key,
+                            value: value,
+                            match: 'AI Source Type'
+                        });
+                        result.confidence = 99;
+                    }
+                }
+
+                // Check for AI software in other fields
+                for (const marker of AI_SOFTWARE_MARKERS) {
+                    if (valueLower.includes(marker) && !result.markers.some(m => m.value === value)) {
+                        result.found = true;
+                        result.markers.push({
+                            type: key,
+                            value: value,
+                            match: marker
+                        });
+                        result.confidence = 99;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        // ============================================
+        // LAYER 2: CAMERA AUTHENTICITY
+        // ============================================
+
+        function analyzeCameraAuthenticity() {
+            const result = {
+                found: false,
+                fields: {},
+                missingFields: [],
+                score: 0,
+                maxScore: CAMERA_FIELDS.length
+            };
+
+            const exif = extractedMetadata.exif || {};
+
+            for (const field of CAMERA_FIELDS) {
+                if (exif[field] !== undefined && exif[field] !== null && exif[field] !== '') {
+                    result.found = true;
+                    result.fields[field] = exif[field];
+                    result.score++;
+                } else {
+                    result.missingFields.push(field);
+                }
+            }
+
+            result.percentage = Math.round((result.score / result.maxScore) * 100);
+
+            return result;
+        }
+
+        // ============================================
+        // LAYER 3: FILE STRUCTURE
+        // ============================================
+
+        function analyzeFileStructure() {
+            const result = {
+                flags: [],
+                suspicious: false
+            };
+
+            const w = extractedMetadata.width;
+            const h = extractedMetadata.height;
+
+            // Check for AI-typical dimensions
+            for (const [aiW, aiH] of AI_DIMENSIONS) {
+                if ((w === aiW && h === aiH) || (w === aiH && h === aiW)) {
+                    result.flags.push({
+                        type: 'warning',
+                        message: `Dimensions ${w}×${h} are commonly used by AI generators`
+                    });
+                    result.suspicious = true;
+                    break;
+                }
+            }
+
+            // Check for screenshot dimensions (phone screens)
+            const phoneScreens = [[1080, 2340], [1080, 2400], [1170, 2532], [1284, 2778], [1440, 3200]];
+            for (const [pW, pH] of phoneScreens) {
+                if ((w === pW && h === pH) || (w === pH && h === pW)) {
+                    result.flags.push({
+                        type: 'warning',
+                        message: `Dimensions ${w}×${h} suggest this might be a screenshot`
+                    });
+                    result.suspicious = true;
+                    break;
+                }
+            }
+
+            // Check file type vs extension mismatch
+            const ext = extractedMetadata.fileName.split('.').pop().toLowerCase();
+            const mimeExt = extractedMetadata.fileType.split('/')[1].toLowerCase();
+            if (ext !== mimeExt && !(ext === 'jpg' && mimeExt === 'jpeg')) {
+                result.flags.push({
+                    type: 'warning',
+                    message: `File extension (.${ext}) doesn't match actual type (${mimeExt})`
+                });
+            }
+
+            // Check for very low EXIF count
+            if (extractedMetadata.exifTagCount < 5) {
+                result.flags.push({
+                    type: 'warning',
+                    message: `Very few EXIF tags (${extractedMetadata.exifTagCount}) - metadata may have been stripped`
+                });
+                result.suspicious = true;
+            }
+
+            // PNG with no camera data
+            if (extractedMetadata.fileType === 'image/png' && !extractedMetadata.exif.Make) {
+                result.flags.push({
+                    type: 'info',
+                    message: 'PNG format without camera data - common for AI-generated or edited images'
+                });
+            }
+
+            return result;
+        }
+
+        // ============================================
+        // LAYER 4: PIXEL PATTERNS (Limited client-side)
+        // ============================================
+
+        function analyzePixelPatterns() {
+            // Client-side pixel analysis is limited
+            // This would be more comprehensive with server-side processing
+            const result = {
+                analyzed: false,
+                note: 'Full pixel forensics requires server-side processing',
+                indicators: []
+            };
+
+            // We can do basic checks based on file characteristics
+            const w = extractedMetadata.width;
+            const h = extractedMetadata.height;
+            const size = extractedMetadata.fileSize;
+
+            // Check compression ratio (very rough estimate)
+            const pixels = w * h;
+            const bytesPerPixel = size / pixels;
+
+            if (bytesPerPixel > 2) {
+                result.indicators.push({
+                    type: 'info',
+                    message: 'High quality / low compression - typical of original photos'
+                });
+            } else if (bytesPerPixel < 0.5) {
+                result.indicators.push({
+                    type: 'warning',
+                    message: 'High compression detected - may have been processed'
+                });
+            }
+
+            return result;
+        }
+
+        // ============================================
+        // LAYER 5: AI VISION ANALYSIS
+        // ============================================
+
+        async function analyzeWithAI() {
+            try {
+                const base64 = imageData.split(',')[1];
+                
+                const response = await fetch('/.netlify/functions/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: base64,
+                        metadata: extractedMetadata,
+                        mediaType: extractedMetadata.fileType
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const result = await response.json();
+                return {
+                    available: true,
+                    result: result
+                };
+
+            } catch (error) {
+                console.warn('AI analysis unavailable:', error);
+                return {
+                    available: false,
+                    note: 'AI vision analysis requires API configuration. Using metadata-only analysis.',
+                    result: null
+                };
+            }
+        }
+
+        // ============================================
+        // VERDICT CALCULATION
+        // ============================================
+
+        function calculateVerdict(results) {
+            let aiScore = 0;
+            let realScore = 0;
+            const evidence = [];
+
+            // Layer 1: AI Markers (HIGHEST WEIGHT)
+            const aiMarkers = results.layers.aiMarkers;
+            if (aiMarkers.found) {
+                aiScore += 50;
+                aiMarkers.markers.forEach(m => {
+                    evidence.push({
+                        type: 'ai',
+                        title: `AI Marker Found: ${m.type}`,
+                        detail: `Value: ${m.value} (matched: ${m.match})`,
+                        weight: 'Critical'
+                    });
+                });
+            } else {
+                evidence.push({
+                    type: 'neutral',
+                    title: 'No AI Markers Found',
+                    detail: 'Note: Markers can be stripped - absence proves nothing',
+                    weight: 'Info'
+                });
+            }
+
+            // Layer 2: Camera Authenticity
+            const camera = results.layers.camera;
+            if (camera.percentage > 50) {
+                realScore += 30;
+                evidence.push({
+                    type: 'real',
+                    title: `Strong Camera Data (${camera.percentage}%)`,
+                    detail: `Found: ${Object.keys(camera.fields).join(', ')}`,
+                    weight: 'High'
+                });
+            } else if (camera.percentage > 20) {
+                realScore += 10;
+                evidence.push({
+                    type: 'real',
+                    title: `Partial Camera Data (${camera.percentage}%)`,
+                    detail: `Found: ${Object.keys(camera.fields).join(', ') || 'Limited fields'}`,
+                    weight: 'Medium'
+                });
+            } else {
+                aiScore += 10;
+                evidence.push({
+                    type: 'ai',
+                    title: `Missing Camera Data (${camera.percentage}%)`,
+                    detail: 'No camera make/model or lens information found',
+                    weight: 'Medium'
+                });
+            }
+
+            // Layer 3: File Structure
+            const fileStructure = results.layers.fileStructure;
+            if (fileStructure.suspicious) {
+                aiScore += 10;
+            }
+            fileStructure.flags.forEach(f => {
+                evidence.push({
+                    type: f.type === 'warning' ? 'ai' : 'neutral',
+                    title: 'File Structure',
+                    detail: f.message,
+                    weight: 'Low'
+                });
+            });
+
+            // Layer 5: AI Vision Analysis
+            const aiVision = results.layers.aiVision;
+            if (aiVision.available && aiVision.result) {
+                const visionResult = aiVision.result;
+                if (visionResult.verdict && visionResult.verdict.includes('AI')) {
+                    aiScore += 20;
+                } else if (visionResult.verdict && visionResult.verdict.includes('REAL')) {
+                    realScore += 20;
+                }
+                
+                if (visionResult.visualAnalysis) {
+                    evidence.push({
+                        type: 'neutral',
+                        title: 'AI Vision Analysis',
+                        detail: visionResult.visualAnalysis,
+                        weight: 'Medium'
+                    });
+                }
+            }
+
+            // Calculate final scores
+            const total = aiScore + realScore || 1;
+            results.scores = {
+                ai: Math.round((aiScore / total) * 100),
+                real: Math.round((realScore / total) * 100),
+                aiRaw: aiScore,
+                realRaw: realScore,
+                total: total
+            };
+
+            // Determine verdict
+            if (aiMarkers.found && aiMarkers.confidence > 95) {
+                results.verdict = 'AI-GENERATED';
+                results.confidence = 'HIGH';
+            } else if (results.scores.ai > 70) {
+                results.verdict = 'LIKELY AI-GENERATED';
+                results.confidence = 'MEDIUM';
+            } else if (results.scores.real > 70) {
+                results.verdict = 'LIKELY REAL';
+                results.confidence = 'MEDIUM';
+            } else if (camera.percentage > 50 && !aiMarkers.found) {
+                results.verdict = 'LIKELY REAL';
+                results.confidence = 'MEDIUM';
+            } else {
+                results.verdict = 'INCONCLUSIVE';
+                results.confidence = 'LOW';
+            }
+
+            results.evidence = evidence;
+        }
+
+        // ============================================
+        // DISPLAY RESULTS
+        // ============================================
+
+        function displayResults(results) {
+            resultsContent.style.display = 'block';
+
+            // Verdict box
+            const verdictBox = document.getElementById('verdictBox');
+            verdictBox.className = 'verdict-box';
+            
+            let icon, verdictClass;
+            if (results.verdict.includes('AI')) {
+                icon = '🤖';
+                verdictClass = 'ai';
+            } else if (results.verdict.includes('REAL')) {
+                icon = '📷';
+                verdictClass = 'real';
+            } else {
+                icon = '❓';
+                verdictClass = 'uncertain';
+            }
+
+            verdictBox.classList.add(verdictClass);
+            document.getElementById('verdictIcon').textContent = icon;
+            document.getElementById('verdictText').textContent = results.verdict;
+            document.getElementById('verdictConfidence').textContent = `${results.confidence} Confidence`;
+
+            // Confidence bar
+            const confidenceFill = document.getElementById('confidenceFill');
+            confidenceFill.className = `confidence-fill ${verdictClass}`;
+            confidenceFill.style.width = `${results.scores.ai}%`;
+
+            // Score cards
+            document.getElementById('aiScore').textContent = `${results.scores.ai}%`;
+            document.getElementById('realScore').textContent = `${results.scores.real}%`;
+            document.getElementById('confidenceScore').textContent = results.confidence;
+
+            // Layer 1: AI Markers
+            const layer1Status = document.getElementById('layer1Status');
+            const layer1Content = document.getElementById('layer1Content');
+            if (results.layers.aiMarkers.found) {
+                layer1Status.textContent = 'AI DETECTED';
+                layer1Status.className = 'status-badge fail';
+                layer1Content.innerHTML = `
+                    <p style="margin-top: 15px; color: var(--danger);">⚠️ AI generation markers found in metadata!</p>
+                    <table>
+                        ${results.layers.aiMarkers.markers.map(m => `
+                            <tr>
+                                <th>${m.type}</th>
+                                <td>${m.value}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                `;
+            } else {
+                layer1Status.textContent = 'None Found';
+                layer1Status.className = 'status-badge pass';
+                layer1Content.innerHTML = `
+                    <p style="margin-top: 15px;">No C2PA, IPTC, or AI software markers found.</p>
+                    <p style="color: var(--text-secondary); margin-top: 10px;">
+                        ⚠️ Note: Absence of markers does not prove the image is real. 
+                        Markers can be stripped with a single command.
+                    </p>
+                `;
+            }
+
+            // Layer 2: Camera Authenticity
+            const layer2Status = document.getElementById('layer2Status');
+            const layer2Content = document.getElementById('layer2Content');
+            const camera = results.layers.camera;
+            
+            if (camera.percentage > 50) {
+                layer2Status.textContent = `${camera.percentage}% Found`;
+                layer2Status.className = 'status-badge pass';
+            } else if (camera.percentage > 20) {
+                layer2Status.textContent = `${camera.percentage}% Found`;
+                layer2Status.className = 'status-badge warning';
+            } else {
+                layer2Status.textContent = `${camera.percentage}% Found`;
+                layer2Status.className = 'status-badge fail';
+            }
+
+            layer2Content.innerHTML = `
+                <p style="margin-top: 15px;">Camera metadata fields found: ${camera.score}/${camera.maxScore}</p>
+                ${Object.keys(camera.fields).length > 0 ? `
+                    <table>
+                        ${Object.entries(camera.fields).map(([k, v]) => `
+                            <tr>
+                                <th>${k}</th>
+                                <td>${v}</td>
+                            </tr>
+                        `).join('')}
+                    </table>
+                ` : '<p style="color: var(--text-secondary); margin-top: 10px;">No camera fields found.</p>'}
+            `;
+
+            // Layer 3: File Structure
+            const layer3Status = document.getElementById('layer3Status');
+            const layer3Content = document.getElementById('layer3Content');
+            const fileStructure = results.layers.fileStructure;
+
+            if (fileStructure.suspicious) {
+                layer3Status.textContent = 'Suspicious';
+                layer3Status.className = 'status-badge warning';
+            } else if (fileStructure.flags.length > 0) {
+                layer3Status.textContent = 'Flags Found';
+                layer3Status.className = 'status-badge info';
+            } else {
+                layer3Status.textContent = 'Normal';
+                layer3Status.className = 'status-badge pass';
+            }
+
+            layer3Content.innerHTML = `
+                <div style="margin-top: 15px;">
+                    ${fileStructure.flags.length > 0 ? fileStructure.flags.map(f => `
+                        <p style="margin-bottom: 8px;">
+                            ${f.type === 'warning' ? '⚠️' : 'ℹ️'} ${f.message}
+                        </p>
+                    `).join('') : '<p>No structural anomalies detected.</p>'}
+                </div>
+            `;
+
+            // Layer 4: Pixel Forensics
+            const layer4Status = document.getElementById('layer4Status');
+            const layer4Content = document.getElementById('layer4Content');
+            
+            layer4Status.textContent = 'Limited';
+            layer4Status.className = 'status-badge info';
+            layer4Content.innerHTML = `
+                <div style="margin-top: 15px;">
+                    <p style="color: var(--text-secondary);">
+                        ${results.layers.pixels.note}
+                    </p>
+                    ${results.layers.pixels.indicators.map(i => `
+                        <p style="margin-top: 8px;">${i.type === 'warning' ? '⚠️' : 'ℹ️'} ${i.message}</p>
+                    `).join('')}
+                </div>
+            `;
+
+            // Layer 5: AI Vision
+            const layer5Status = document.getElementById('layer5Status');
+            const layer5Content = document.getElementById('layer5Content');
+            const aiVision = results.layers.aiVision;
+
+            if (aiVision.available && aiVision.result) {
+                layer5Status.textContent = 'Complete';
+                layer5Status.className = 'status-badge pass';
+                layer5Content.innerHTML = `
+                    <div style="margin-top: 15px;">
+                        <p><strong>AI Vision Verdict:</strong> ${aiVision.result.verdict || 'N/A'}</p>
+                        ${aiVision.result.visualAnalysis ? `
+                            <p style="margin-top: 10px;"><strong>Visual Analysis:</strong></p>
+                            <p style="color: var(--text-secondary);">${aiVision.result.visualAnalysis}</p>
+                        ` : ''}
+                        ${aiVision.result.reasoning ? `
+                            <p style="margin-top: 10px;"><strong>Reasoning:</strong></p>
+                            <p style="color: var(--text-secondary);">${aiVision.result.reasoning}</p>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                layer5Status.textContent = 'Unavailable';
+                layer5Status.className = 'status-badge warning';
+                layer5Content.innerHTML = `
+                    <div style="margin-top: 15px;">
+                        <p style="color: var(--text-secondary);">${aiVision.note || 'AI vision analysis not available.'}</p>
+                        <p style="margin-top: 10px;">To enable: Add your ANTHROPIC_API_KEY in Netlify environment variables.</p>
+                    </div>
+                `;
+            }
+
+            // Evidence List
+            const evidenceList = document.getElementById('evidenceList');
+            evidenceList.innerHTML = results.evidence.map(e => `
+                <div class="evidence-item ${e.type}">
+                    <span class="evidence-icon">${e.type === 'ai' ? '⚠️' : e.type === 'real' ? '✓' : 'ℹ️'}</span>
+                    <div class="evidence-text">
+                        <strong>${e.title}</strong>
+                        <small>${e.detail} (Weight: ${e.weight})</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================
+        // UTILITIES
+        // ============================================
+
+        function toggleLayer(layerId) {
+            const content = document.getElementById(layerId + 'Content');
+            const arrow = document.querySelector(`#${layerId} .toggle-arrow`);
+            content.classList.toggle('open');
+            arrow.classList.toggle('open');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

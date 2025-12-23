@@ -1,0 +1,13 @@
+{
+    "name": "ai-image-detector-pro",
+    "version": "2.0.0",
+    "description": "Comprehensive AI Image Detection Tool with Multi-Layer Analysis",
+    "scripts": {
+        "build": "echo 'No build needed'"
+    },
+    "dependencies": {
+        "@anthropic-ai/sdk": "^0.52.0"
+    },
+    "keywords": ["ai", "detection", "image", "forensics", "claude"],
+    "license": "MIT"
+}
